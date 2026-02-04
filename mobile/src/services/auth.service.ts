@@ -288,8 +288,27 @@ class AuthService {
   }
 
   async logout(): Promise<void> {
-    await this.removeToken();
-    await this.removeRefreshToken();
+    try {
+      // Call backend logout to invalidate session on server
+      const token = await this.getToken();
+      if (token) {
+        const url = `${API_CONFIG.BASE_URL}/${API_CONFIG.ENDPOINTS.AUTH.LOGOUT}`;
+        await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+    } catch (error) {
+      // Even if backend logout fails, continue with local cleanup
+      console.error("Backend logout error:", error);
+    } finally {
+      // Always clear local tokens
+      await this.removeToken();
+      await this.removeRefreshToken();
+    }
   }
 
   async sendPhoneOtp(data: PhoneOtpData): Promise<{ message: string }> {

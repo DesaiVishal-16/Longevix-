@@ -195,4 +195,14 @@ export class AuthService {
 
     return { data, error };
   }
+
+  async logout(): Promise<{ success: boolean }> {
+    const { error } = await this.supabaseService.supabase.auth.signOut();
+
+    if (error) {
+      throw new UnauthorizedException(error.message);
+    }
+
+    return { success: true };
+  }
 }

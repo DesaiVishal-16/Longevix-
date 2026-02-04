@@ -13,6 +13,7 @@ export const API_CONFIG = {
     AUTH: {
       REGISTER: "auth/register",
       LOGIN: "auth/login",
+      LOGOUT: "auth/logout",
       PROFILE: "auth/profile",
       UPDATE_PROFILE: "auth/profile",
       SEND_PHONE_OTP: "auth/send-phone-otp",

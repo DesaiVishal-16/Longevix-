@@ -231,4 +231,14 @@ export class AuthController {
     const result = await this.authService.refreshToken(body.refreshToken);
     return result;
   }
+
+  @UseGuards(AuthGuard)
+  @Post('logout')
+  async logout(@Request() req) {
+    const result = await this.authService.logout();
+    return {
+      message: 'Logged out successfully',
+      ...result,
+    };
+  }
 }
