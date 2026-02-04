@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import * as crypto from 'crypto';
+
+// Polyfill crypto for Node.js 18 - must be before any module imports that use crypto
+if (typeof globalThis.crypto === 'undefined') {
+  globalThis.crypto = crypto as any;
+}
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
