@@ -189,19 +189,11 @@ class AuthService {
   }
 
   async storeToken(token: string, refreshToken: string): Promise<void> {
-    try {
-      await AsyncStorage.setItem(this.TOKEN_KEY, token);
-      await AsyncStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
-    } catch (error: any) {
-      // Try to clear and retry on Android
-      try {
-        await AsyncStorage.clear();
-        await AsyncStorage.setItem(this.TOKEN_KEY, token);
-        await AsyncStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
-      } catch (retryError: any) {
-        throw new Error(`Failed to store authentication token: ${retryError?.message || 'Unknown error'}`);
-      }
-    }
+    // Store both tokens atomically - both must succeed or both fail
+    await AsyncStorage.multiSet([
+      [this.TOKEN_KEY, token],
+      [this.REFRESH_TOKEN_KEY, refreshToken],
+    ]);
   }
 
   async getRefreshToken(): Promise<string | null> {
@@ -305,9 +297,8 @@ class AuthService {
       // Even if backend logout fails, continue with local cleanup
       console.error("Backend logout error:", error);
     } finally {
-      // Always clear local tokens
-      await this.removeToken();
-      await this.removeRefreshToken();
+      // Always clear local tokens atomically
+      await AsyncStorage.multiRemove([this.TOKEN_KEY, this.REFRESH_TOKEN_KEY]);
     }
   }
 

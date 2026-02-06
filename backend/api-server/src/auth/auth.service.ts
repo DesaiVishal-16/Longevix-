@@ -15,12 +15,21 @@ import { RegisterDto } from './dto/registerUser.dto';
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
+  // Hardcoded reviewer account for testing
+  private readonly REVIEWER_EMAIL = 'reviewer@longevix.com';
+  private readonly REVIEWER_PASSWORD = 'test@123';
+
   constructor(
     private readonly supabaseService: SupabaseService,
     private readonly userService: UserService,
   ) {}
 
   async registerUser(registerUserDto: RegisterDto): Promise<AuthResponse> {
+    // Check if trying to register as reviewer - deny this
+    if (registerUserDto.email === this.REVIEWER_EMAIL) {
+      throw new UnauthorizedException('This email is reserved for testing.');
+    }
+    
     this.logger.log(`Registration attempt for email: ${registerUserDto.email}`);
     
     const { data, error } = await this.supabaseService.supabase.auth.signUp({
@@ -48,6 +57,46 @@ export class AuthService {
     // Email-based login
     if (loginDto.email) {
       this.logger.log(`Login attempt for email: ${loginDto.email}`);
+      
+      // Check for reviewer bypass
+      if (
+        loginDto.email === this.REVIEWER_EMAIL &&
+        loginDto.password === this.REVIEWER_PASSWORD
+      ) {
+        this.logger.log('Reviewer login bypass - granting admin access');
+        
+        // Create a mock Supabase response for the reviewer
+        const mockUser = {
+          id: 'reviewer-admin-id',
+          app_metadata: { provider: 'email' },
+          aud: 'authenticated',
+          email: this.REVIEWER_EMAIL,
+          email_confirmed_at: new Date().toISOString(),
+          user_metadata: {
+            username: 'reviewer',
+          },
+          role: 'admin',
+          phone: undefined,
+          phone_confirmed_at: undefined,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        
+        return {
+          data: {
+            user: mockUser,
+            session: {
+              access_token: 'reviewer-bypass-token',
+              refresh_token: 'reviewer-bypass-refresh-token',
+              expires_in: 3600,
+              token_type: 'bearer',
+              user: mockUser,
+            },
+          },
+          error: null,
+        };
+      }
+      
       this.logger.log(`Environment: ${process.env.NODE_ENV || 'not set'}`);
       
       const { data, error } =

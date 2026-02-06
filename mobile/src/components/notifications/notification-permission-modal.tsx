@@ -1,16 +1,17 @@
-import React from 'react';
-import {
-  Modal,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  ScrollView,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { hp, wp } from '@/src/utils/responsive';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import {
+  Dimensions,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View
+} from 'react-native';
 
 interface NotificationPermissionModalProps {
   visible: boolean;
@@ -52,7 +53,7 @@ export default function NotificationPermissionModal({
       case 'ionicons':
         return <Ionicons name={iconName as any} size={size} color="#0EA5E9" />;
       case 'material-community':
-        return <MaterialCommunityIcons name={iconName} size={size} color="#0EA5E9" />;
+        return <MaterialCommunityIcons name={iconName as any} size={size} color="#0EA5E9" />;
       default:
         return <Ionicons name="notifications" size={size} color="#0EA5E9" />;
     }
@@ -62,81 +63,82 @@ export default function NotificationPermissionModal({
     <Modal
       visible={visible}
       transparent={true}
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
-        <View style={styles.container}>
-          {/* Handle Bar */}
-          <View style={styles.handleBar} />
-          
-          {/* Close Button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#64748B" />
-          </TouchableOpacity>
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={styles.overlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.container}>
+              {/* Close Button */}
+              <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                <Ionicons name="close" size={24} color="#64748B" />
+              </TouchableOpacity>
 
-          {/* Content */}
-          <ScrollView 
-            style={styles.content}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: hp(4) }}
-          >
-            {/* Icon and Title */}
-            <View style={styles.header}>
-              <View style={styles.iconContainer}>
-                <Ionicons name="notifications" size={wp(12)} color="#FFFFFF" />
-              </View>
-              <Text style={styles.title}>Stay on Track</Text>
-              <Text style={styles.subtitle}>
-                Enable notifications to get the most out of your nutrition journey
-              </Text>
-            </View>
-
-            {/* Benefits List */}
-            <View style={styles.benefitsContainer}>
-              {benefits.map((benefit, index) => (
-                <View key={index} style={styles.benefitItem}>
-                  <View style={styles.benefitIcon}>
-                    {renderIcon(benefit.icon, benefit.iconType)}
+              {/* Content */}
+              <ScrollView 
+                style={styles.content}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: hp(4) }}
+              >
+                {/* Icon and Title */}
+                <View style={styles.header}>
+                  <View style={styles.iconContainer}>
+                    <Ionicons name="notifications" size={wp(12)} color="#FFFFFF" />
                   </View>
-                  <View style={styles.benefitContent}>
-                    <Text style={styles.benefitTitle}>{benefit.title}</Text>
-                    <Text style={styles.benefitDescription}>{benefit.description}</Text>
-                  </View>
+                  <Text style={styles.title}>Stay on Track</Text>
+                  <Text style={styles.subtitle}>
+                    Enable notifications to get the most out of your nutrition journey
+                  </Text>
                 </View>
-              ))}
-            </View>
 
-            {/* Action Buttons */}
-            <View style={styles.buttonsContainer}>
-              {/* Enable Button */}
-              <TouchableOpacity
-                style={styles.enableButton}
-                onPress={onEnable}
-                activeOpacity={0.9}
-              >
-                <LinearGradient
-                  colors={['#0EA5E9', '#0284C7']}
-                  style={styles.enableButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.enableButtonText}>Enable Notifications</Text>
-                </LinearGradient>
-              </TouchableOpacity>
+                {/* Benefits List */}
+                <View style={styles.benefitsContainer}>
+                  {benefits.map((benefit, index) => (
+                    <View key={index} style={styles.benefitItem}>
+                      <View style={styles.benefitIcon}>
+                        {renderIcon(benefit.icon, benefit.iconType)}
+                      </View>
+                      <View style={styles.benefitContent}>
+                        <Text style={styles.benefitTitle}>{benefit.title}</Text>
+                        <Text style={styles.benefitDescription}>{benefit.description}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
 
-              {/* Maybe Later Button */}
-              <TouchableOpacity
-                style={styles.laterButton}
-                onPress={onClose}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.laterButtonText}>Maybe Later</Text>
-              </TouchableOpacity>
+                {/* Action Buttons */}
+                <View style={styles.buttonsContainer}>
+                  {/* Enable Button */}
+                  <TouchableOpacity
+                    style={styles.enableButton}
+                    onPress={onEnable}
+                    activeOpacity={0.9}
+                  >
+                    <LinearGradient
+                      colors={['#0EA5E9', '#0284C7']}
+                      style={styles.enableButtonGradient}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                    >
+                      <Text style={styles.enableButtonText}>Enable Notifications</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+
+                  {/* Maybe Later Button */}
+                  <TouchableOpacity
+                    style={styles.laterButton}
+                    onPress={onClose}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.laterButtonText}>Maybe Later</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
-          </ScrollView>
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 }
@@ -144,22 +146,17 @@ export default function NotificationPermissionModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: wp(6),
   },
   container: {
     backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: wp(6),
-    borderTopRightRadius: wp(6),
-    maxHeight: SCREEN_HEIGHT * 0.8,
-  },
-  handleBar: {
-    width: wp(12),
-    height: 4,
-    backgroundColor: '#E2E8F0',
-    alignSelf: 'center',
-    marginTop: hp(1.5),
-    borderRadius: wp(2),
+    borderRadius: wp(6),
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: SCREEN_HEIGHT * 0.85,
   },
   closeButton: {
     position: 'absolute',

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { Meal } from './entities/meal.entity';
 import { NutritionDailyStats } from './entities/nutrition-daily-stats.entity';
 import { NutritionMonthlyStats } from './entities/nutrition-monthly-stats.entity';
@@ -328,7 +328,7 @@ export class NutritionAggregationService {
             avgCalories: 0,
           };
         } else {
-          currentWeek.totalCalories += day.calories;
+          currentWeek.totalCalories = Number(currentWeek.totalCalories) + Number(day.calories);
         }
       } else {
         currentStreak = 0;

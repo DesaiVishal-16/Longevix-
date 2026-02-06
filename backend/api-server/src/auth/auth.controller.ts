@@ -2,11 +2,13 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  Logger,
   Post,
   Put,
   Request,
   UnauthorizedException,
-  UseGuards,
+  UseGuards
 } from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { Role } from '../user/user.types';
@@ -21,6 +23,8 @@ import { VerifyPhoneOtpDto } from './dto/verifyPhoneOtp.dto';
 
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
@@ -33,12 +37,31 @@ export class AuthController {
     // Check if email confirmation is required
     const emailConfirmed = !!result.data.user?.email_confirmed_at;
     
+    // Create local database user if registration was successful
+    if (result.data.user) {
+      try {
+        await this.userService.createUser({
+          id: result.data.user.id,
+          username: registerUserDto.username || result.data.user.user_metadata?.username,
+          email: result.data.user.email,
+          phone: undefined,
+          profileCompleted: false,
+        });
+      } catch (userError) {
+        // If user creation fails (e.g., already exists), log but don't fail registration
+        // This handles cases where Supabase user exists but local DB user doesn't
+        const errorStatus = (userError as any)?.status || (userError as any)?.response?.statusCode;
+        if (!(userError instanceof HttpException && errorStatus === 409)) {
+          this.logger.error(`Failed to create local user: ${(userError as Error).message}`);
+        }
+      }
+    }
+    
     if (!emailConfirmed) {
       return {
         message: 'Registration successful! Please check your email to verify your account before logging in.',
         user: result.data.user,
         requiresEmailVerification: true,
-        // Don't return access token - user must verify email first
       };
     }
     
@@ -102,25 +125,47 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @Get('profile')
   async getProfile(@Request() req) {
-    // Try to find user by email (for email-based users), phone (for phone-based users), or by ID
-    let user = await this.userService.findByEmail(req.user?.email);
-
-    if (!user && req.user?.phone) {
-      user = await this.userService.findByPhone(req.user.phone);
-    }
-
-    if (!user && req.user?.id) {
-      user = await this.userService.findById(req.user.id);
-    }
-
-    // If user still not found, create a new user entity (for phone-based users without existing record)
-    if (!user) {
-      user = await this.userService.createUser({
-        id: req.user.id,
-        username: req.user?.user_metadata?.username,
+    // Check if user is a reviewer (bypass database lookup)
+    const isReviewer = req.user?.email === 'reviewer@longevix.com';
+    
+    if (isReviewer) {
+      // Return admin profile for reviewer
+      return {
+        id: req.user?.id,
         email: req.user?.email,
         phone: req.user?.phone,
-        profileCompleted: false, // Explicitly set profileCompleted for new users
+        username: req.user?.user_metadata?.username || 'reviewer',
+        role: 'admin',
+        profileCompleted: true,
+        age: undefined,
+        sex: undefined,
+        height: undefined,
+        weight: undefined,
+        activityLevel: undefined,
+        dietType: undefined,
+        primaryGoal: undefined,
+      };
+    }
+
+    // Try to find user by ID first (most reliable - uses Supabase auth ID)
+    let user = await this.userService.findById(req.user?.id);
+
+    // If not found by ID, try email
+    if (!user && req.user?.email) {
+      user = await this.userService.findByEmail(req.user?.email);
+    }
+
+    // If not found by email, try phone
+    if (!user && req.user?.phone) {
+      user = await this.userService.findByPhone(req.user?.phone);
+    }
+
+    // If user still not found, return an error - user should register first
+    if (!user) {
+      throw new UnauthorizedException({
+        message: 'User not found in database. Please register first.',
+        error: 'USER_NOT_FOUND',
+        resolution: 'REGISTER',
       });
     }
 
@@ -139,6 +184,7 @@ export class AuthController {
       dietType: user?.dietType,
       primaryGoal: user?.primaryGoal,
     };
+
   }
 
   @UseGuards(AuthGuard)
@@ -147,24 +193,50 @@ export class AuthController {
     @Request() req,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    // Try to find user by email (for email-based users), phone (for phone-based users), or by ID
-    let user = await this.userService.findByEmail(req.user?.email);
+    // Check if user is a reviewer (bypass database lookup)
+    const isReviewer = req.user?.email === 'reviewer@longevix.com';
+    
+    if (isReviewer) {
+      // Return updated admin profile for reviewer without storing in database
+      return {
+        message: 'Profile updated successfully',
+        user: {
+          id: req.user?.id,
+          email: req.user?.email,
+          phone: req.user?.phone,
+          username: req.user?.user_metadata?.username || 'reviewer',
+          role: 'admin',
+          profileCompleted: true,
+          age: updateProfileDto.age,
+          sex: updateProfileDto.sex,
+          height: updateProfileDto.height,
+          weight: updateProfileDto.weight,
+          activityLevel: updateProfileDto.activityLevel,
+          dietType: updateProfileDto.dietType,
+          primaryGoal: updateProfileDto.primaryGoal,
+        },
+      };
+    }
 
+    // Try to find user by ID first (most reliable - uses Supabase auth ID)
+    let user = await this.userService.findById(req.user?.id);
+
+    // If not found by ID, try email
+    if (!user && req.user?.email) {
+      user = await this.userService.findByEmail(req.user?.email);
+    }
+
+    // If not found by email, try phone
     if (!user && req.user?.phone) {
-      user = await this.userService.findByPhone(req.user.phone);
+      user = await this.userService.findByPhone(req.user?.phone);
     }
 
-    if (!user && req.user?.id) {
-      user = await this.userService.findById(req.user.id);
-    }
-
-    // If user still not found, create a new user entity (for phone-based users without existing record)
+    // If user still not found, return error - user should register first
     if (!user) {
-      user = await this.userService.createUser({
-        id: req.user.id,
-        username: req.user?.user_metadata?.username,
-        email: req.user?.email,
-        phone: req.user?.phone,
+      throw new UnauthorizedException({
+        message: 'User not found in database. Please register first.',
+        error: 'USER_NOT_FOUND',
+        resolution: 'REGISTER',
       });
     }
 

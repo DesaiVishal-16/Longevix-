@@ -106,7 +106,7 @@ export class MealsService {
             : {},
         }));
         existingMeal.items = [...existingMeal.items, ...itemsToAdd];
-        existingMeal.calories += totalCalories;
+        existingMeal.calories = Number(existingMeal.calories) + totalCalories;
 
         if (!existingMeal.micronutrients) {
           existingMeal.micronutrients = {};
@@ -116,7 +116,7 @@ export class MealsService {
           if (!existingMeal.micronutrients![key]) {
             existingMeal.micronutrients![key] = 0;
           }
-          existingMeal.micronutrients![key] += value;
+          existingMeal.micronutrients![key] = Number(existingMeal.micronutrients![key]) + value;
         });
 
         const savedMeal = await this.mealRepository.save(existingMeal);
@@ -241,7 +241,7 @@ export class MealsService {
 
       // Add the new item to the meal
       meal.items = [...meal.items, newItem];
-      meal.calories += Number(foodItem.calories);
+      meal.calories = Number(meal.calories) + Number(foodItem.calories);
 
       // Add micronutrients
       if (foodItem.micronutrients) {
@@ -252,7 +252,7 @@ export class MealsService {
           if (!meal.micronutrients![key]) {
             meal.micronutrients![key] = 0;
           }
-          meal.micronutrients![key] += Number(value);
+          meal.micronutrients![key] = Number(meal.micronutrients![key]) + Number(value);
         });
       }
 

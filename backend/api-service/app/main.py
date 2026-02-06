@@ -8,7 +8,7 @@ import signal
 from typing import Optional, Dict, Any, List
 from contextlib import asynccontextmanager
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from fastapi import FastAPI, HTTPException, Header, Depends, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.middleware.cors import CORSMiddleware
@@ -63,16 +63,19 @@ class Settings(BaseModel):
     CORS_ORIGINS: str = "*"
     API_SERVICE_PORT: int = 8000
     
-    @validator('API_SERVICE_KEY', 'HF_TOKEN', 'USDA_API_KEY', pre=True, always=True)
-    def validate_required_keys(cls, v, field):
-        if field.name == 'API_SERVICE_KEY':
+    @field_validator('API_SERVICE_KEY', 'HF_TOKEN', 'USDA_API_KEY', mode='before')
+    @classmethod
+    def validate_required_keys(cls, v, info):
+        field_name = info.field_name
+        if field_name == 'API_SERVICE_KEY':
             if not v or v == "your-secret-api-key-here":
                 # In development, allow empty; in production, require it
                 if os.environ.get("ENVIRONMENT") == "production":
-                    raise ValueError(f"{field.name} must be set in production")
+                    raise ValueError(f"{field_name} must be set in production")
         return v
     
-    @validator('RATE_LIMIT_PER_MINUTE')
+    @field_validator('RATE_LIMIT_PER_MINUTE')
+    @classmethod
     def validate_rate_limit(cls, v):
         if v < 1 or v > 1000:
             raise ValueError("RATE_LIMIT_PER_MINUTE must be between 1 and 1000")
