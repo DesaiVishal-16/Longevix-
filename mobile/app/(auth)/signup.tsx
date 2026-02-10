@@ -109,10 +109,23 @@ export default function SignUpScreen() {
         });
       }
     } catch (error) {
-      Alert.alert(
-        "Registration Failed",
-        error instanceof Error ? error.message : "An unexpected error occurred",
-      );
+      let errorMessage = "An unexpected error occurred";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Check for email already exists error
+        if (
+          errorMessage.toLowerCase().includes("email already exists") ||
+          errorMessage.toLowerCase().includes("user already registered") ||
+          errorMessage.toLowerCase().includes("already exists") ||
+          errorMessage.toLowerCase().includes("duplicate")
+        ) {
+          errorMessage = "This email is already registered. Please use a different email or try logging in.";
+        }
+      }
+      
+      Alert.alert("Registration Failed", errorMessage);
     } finally {
       setIsLoading(false);
       
